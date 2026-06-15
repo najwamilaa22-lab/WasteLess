@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, Bell, Camera, Sparkles, Utensils, Home, BarChart2, MessageSquare, LogOut, LogIn, User } from 'lucide-react';
+import { Search, Bell, Camera, LogOut, LogIn, User } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 

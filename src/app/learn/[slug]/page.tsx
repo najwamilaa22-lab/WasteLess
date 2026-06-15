@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Clock, Calendar, Share2, BookmarkPlus } from 'lucide-react';
 import Link from 'next/link';
-import { ARTICLES_DATA } from '../page';
+import { ARTICLES_DATA } from '@/lib/data';
 
 export default function ArticleDetailPage() {
   const params = useParams();

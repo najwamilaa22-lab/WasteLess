@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { MessageSquare, Send, RefreshCw, Sparkles, Utensils, BookOpen, BarChart2, Calendar, ChevronRight, Leaf, Info, Droplets } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { MessageSquare, Send, Sparkles, Utensils, BookOpen, BarChart2, Calendar, ChevronRight, Leaf, Info, Droplets } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 
 interface Message {
   role: 'user' | 'assistant';

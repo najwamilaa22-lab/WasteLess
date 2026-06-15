@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, Receipt, ArrowUpRight, PieChart, Plus, X, Loader2 } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, Receipt, PieChart, Plus, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
@@ -19,6 +19,7 @@ export default function BudgetPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [sessionUser, setSessionUser] = useState<any>(null);
 
   // Form State
@@ -94,6 +95,7 @@ export default function BudgetPage() {
       setIsModalOpen(false);
       await fetchData();
       
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       alert('Gagal menyimpan transaksi: ' + error.message);
     } finally {
@@ -231,7 +233,7 @@ export default function BudgetPage() {
                  <div className="flex flex-col items-center justify-center py-10 text-center">
                     <Receipt className="w-10 h-10 text-stone-200 mb-2" />
                     <p className="text-sm font-bold text-stone-500">Belum ada riwayat tercatat.</p>
-                    <p className="text-xs text-stone-400 mt-1">Klik "Tambah Manual" untuk memulai.</p>
+                    <p className="text-xs text-stone-400 mt-1">Klik &quot;Tambah Manual&quot; untuk memulai.</p>
                  </div>
                ) : (
                  transactions.map((trx) => (
