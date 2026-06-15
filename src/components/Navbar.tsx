@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, Bell, Camera, LogOut, LogIn, User } from 'lucide-react';
+import { Search, Bell, Camera, LogOut, LogIn, User, Menu, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function Navbar() {
@@ -12,6 +12,7 @@ export default function Navbar() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Initial session fetch
@@ -151,7 +152,61 @@ export default function Navbar() {
             )}
           </div>
         </div>
+
+        {/* Mobile Hamburger Button */}
+        <button 
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="md:hidden p-2 text-stone-600 focus:outline-none"
+        >
+          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+
       </div>
+
+      {/* Mobile Navigation Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden absolute top-full left-0 w-full bg-white border-b border-stone-200 shadow-lg pb-4 pt-2 px-6 flex flex-col gap-4">
+          <nav className="flex flex-col gap-4">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/');
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`text-base font-medium transition-colors ${
+                    isActive ? 'text-brand-dark font-bold' : 'text-stone-500 hover:text-stone-900'
+                  }`}
+                >
+                  {item.name}
+                </Link>
+              );
+            })}
+          </nav>
+          
+          <div className="pt-4 border-t border-stone-100 flex items-center justify-between">
+            <Link
+              href="/inventory?scan=true"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-1.5 rounded-full bg-brand-dark px-4 py-2 text-sm font-semibold text-white hover:bg-brand transition-colors"
+            >
+              <Camera className="h-4 w-4" />
+              <span>Scan Struk AI</span>
+            </Link>
+            
+            {!user && (
+              <Link
+                href="/login"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 transition-colors"
+              >
+                <LogIn className="h-4 w-4" />
+                <span>Masuk</span>
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 }

@@ -86,7 +86,7 @@ export default function LoginPage() {
       </div>
 
       {/* Form Side */}
-      <div className="md:w-[45%] bg-white flex flex-col justify-center px-8 lg:px-16 py-12 relative shadow-[-20px_0_40px_rgba(0,0,0,0.05)] rounded-l-[40px] md:-ml-8 z-30">
+      <div className="md:w-[45%] bg-white flex flex-col justify-center px-8 lg:px-16 py-12 relative shadow-[-20px_0_40px_rgba(0,0,0,0.05)] rounded-t-[40px] md:rounded-t-none md:rounded-l-[40px] -mt-8 md:-mt-0 md:-ml-8 z-30">
         
         <div className="w-full max-w-md mx-auto">
           <div className="flex gap-8 border-b border-stone-200 mb-8">
