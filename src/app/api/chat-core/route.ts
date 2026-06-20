@@ -92,7 +92,7 @@ export async function POST(req: Request) {
           errorMessage += `\\n\\n[DEBUG] Gagal melist model: ${JSON.stringify(modelsData)}`;
         }
       }
-    } catch (_) {
+    } catch {
       // Ignore inner error
     }
 
