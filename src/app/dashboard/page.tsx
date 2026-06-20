@@ -6,7 +6,7 @@ import { Camera, ArrowRight, ShieldCheck, Wallet, Flame, AlertCircle, Plus, Chev
 import { supabase } from '@/lib/supabase';
 
 export default function Home() {
-  const [items, setItems] = useState<Record<string, any>[]>([]);
+  const [items, setItems] = useState<Record<string, string | number>[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
