@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Send, Sparkles, Utensils, BookOpen, BarChart2, Calendar, ChevronRight, Leaf, Info, Droplets } from 'lucide-react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -17,6 +18,9 @@ export default function AIAssistant() {
   const [chatLoading, setChatLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  type InventoryItem = { name: string; quantity: number; unit?: string; expiryDate: string };
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -24,6 +28,27 @@ export default function AIAssistant() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    const fetchInventory = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data } = await supabase
+          .from('pantry_assets')
+          .select('item_name, weight_quantity_gram, estimated_expiry_date')
+          .eq('user_id', session.user.id);
+        if (data) {
+          setInventory(data.map(item => ({
+            name: item.item_name,
+            quantity: item.weight_quantity_gram,
+            unit: 'gram',
+            expiryDate: item.estimated_expiry_date
+          })));
+        }
+      }
+    };
+    fetchInventory();
+  }, []);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,13 +61,10 @@ export default function AIAssistant() {
     setChatLoading(true);
 
     try {
-      const savedInventory = localStorage.getItem('inventoryItems');
-      const inventoryData = savedInventory ? JSON.parse(savedInventory) : [];
-
       const res = await fetch('/api/chat-core', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages, inventory: inventoryData })
+        body: JSON.stringify({ messages: newMessages, inventory })
       });
       const data = await res.json();
       if (data.success && data.choices && data.choices.length > 0) {
