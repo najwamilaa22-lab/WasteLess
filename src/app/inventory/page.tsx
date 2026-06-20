@@ -22,6 +22,7 @@ export default function Inventory() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [scannedItems, setScannedItems] = useState<Omit<PantryItem, 'id' | 'status' | 'purchase_date' | 'estimated_expiry_date'>[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   // Form states for manual add
   const [newItem, setNewItem] = useState({
@@ -34,26 +35,27 @@ export default function Inventory() {
 
   // Load items on mount
   useEffect(() => {
-    fetchPantryItems();
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setUserId(session.user.id);
+        fetchPantryItems(session.user.id);
+      }
+    };
+    init();
   }, []);
 
-  const fetchPantryItems = async () => {
+  const fetchPantryItems = async (uid: string) => {
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('pantry_assets')
         .select('*')
+        .eq('user_id', uid)
         .order('estimated_expiry_date', { ascending: true });
 
-      if (error || !data || data.length === 0) {
-        // Mock fallback data to guarantee interactive experience out of the box
-        const mockData: PantryItem[] = [
-          { id: '1', item_name: 'Daging Sapi', category: 'Daging', weight_quantity_gram: 500, purchase_price: 70000, purchase_date: '2026-06-02', estimated_expiry_date: '2026-06-04', status: 'Kritis' },
-          { id: '2', item_name: 'Bayam', category: 'Sayur', weight_quantity_gram: 200, purchase_price: 5000, purchase_date: '2026-06-02', estimated_expiry_date: '2026-06-05', status: 'Warning' },
-          { id: '3', item_name: 'Telur Ayam', category: 'Telur', weight_quantity_gram: 480, purchase_price: 24000, purchase_date: '2026-06-01', estimated_expiry_date: '2026-06-15', status: 'Segar' },
-          { id: '4', item_name: 'Susu UHT', category: 'Susu', weight_quantity_gram: 1000, purchase_price: 18000, purchase_date: '2026-06-01', estimated_expiry_date: '2026-06-08', status: 'Segar' }
-        ];
-        setItems(mockData);
+      if (error) {
+        console.error(error);
       } else {
         setItems(data as PantryItem[]);
       }
@@ -143,6 +145,7 @@ export default function Inventory() {
 
     try {
       const dbInsertPayload = itemsToSave.map(i => ({
+        user_id: userId,
         item_name: i.item_name,
         category: i.category,
         weight_quantity_gram: i.weight_quantity_gram,
@@ -151,12 +154,17 @@ export default function Inventory() {
         estimated_expiry_date: i.estimated_expiry_date,
         status: i.status
       }));
-      await supabase.from('pantry_assets').insert(dbInsertPayload);
+      const { data } = await supabase.from('pantry_assets').insert(dbInsertPayload).select();
+      if (data) {
+         setItems([...data, ...items]);
+      } else {
+         setItems([...itemsToSave, ...items]);
+      }
     } catch (e) {
       console.warn("DB Insert failed, logging to local state instead", e);
+      setItems([...itemsToSave, ...items]);
     }
 
-    setItems([...itemsToSave, ...items]);
     setScanModalOpen(false);
     setScannedItems([]);
     setImagePreview(null);
@@ -187,7 +195,8 @@ export default function Inventory() {
     };
 
     try {
-      await supabase.from('pantry_assets').insert({
+      const { data } = await supabase.from('pantry_assets').insert({
+        user_id: userId,
         item_name: itemObj.item_name,
         category: itemObj.category,
         weight_quantity_gram: itemObj.weight_quantity_gram,
@@ -195,12 +204,18 @@ export default function Inventory() {
         purchase_date: itemObj.purchase_date,
         estimated_expiry_date: itemObj.estimated_expiry_date,
         status: itemObj.status
-      });
+      }).select();
+      
+      if (data && data.length > 0) {
+         setItems([data[0], ...items]);
+      } else {
+         setItems([itemObj, ...items]);
+      }
     } catch (e) {
       console.warn(e);
+      setItems([itemObj, ...items]);
     }
 
-    setItems([itemObj, ...items]);
     setAddModalOpen(false);
     setNewItem({
       item_name: '',
@@ -244,7 +259,7 @@ export default function Inventory() {
 
     // Log to waste logs table
     const wasteEntry = {
-      user_id: 'd0c11f7a-8b8a-4933-87b6-c67d643db8e0',
+      user_id: userId,
       pantry_asset_id: id.startsWith('manual') || id.startsWith('scanned') ? null : id,
       item_name: targetItem.item_name,
       wasted_weight_gram: targetItem.weight_quantity_gram,
@@ -254,7 +269,9 @@ export default function Inventory() {
 
     try {
       await supabase.from('waste_logs').insert(wasteEntry);
-      await supabase.from('pantry_assets').delete().eq('id', id);
+      if (!id.startsWith('manual') && !id.startsWith('scanned')) {
+         await supabase.from('pantry_assets').delete().eq('id', id);
+      }
     } catch (e) {
       console.warn(e);
     }

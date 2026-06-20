@@ -1,7 +1,33 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Camera, ArrowRight, ShieldCheck, Wallet, Flame, AlertCircle, Plus, ChevronRight, BookOpen, Sparkles } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function Home() {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data } = await supabase
+          .from('pantry_assets')
+          .select('*')
+          .eq('user_id', session.user.id);
+        if (data) setItems(data);
+      }
+      setLoading(false);
+    };
+    init();
+  }, []);
+
+  const totalValue = items.reduce((acc, curr) => acc + Number(curr.purchase_price), 0);
+  const criticalItems = items.filter(i => i.status === 'Kritis');
+  const criticalValue = criticalItems.reduce((acc, curr) => acc + Number(curr.purchase_price), 0);
+
   return (
     <div className="min-h-screen bg-brand-bg">
       
@@ -45,9 +71,9 @@ export default function Home() {
             
             {/* Floating Stats Card */}
             <div className="absolute -left-12 top-12 glass-panel p-4 rounded-2xl shadow-xl flex flex-col gap-1 max-w-[200px] animate-fade-in">
-              <p className="text-xs text-stone-600">Kamu sudah menyelamatkan</p>
-              <p className="text-xl font-bold text-brand-dark">Rp 0</p>
-              <p className="text-xs text-brand font-medium">bulan ini 💚</p>
+              <p className="text-xs text-stone-600">Total Nilai Kulkas</p>
+              <p className="text-xl font-bold text-brand-dark">Rp {totalValue.toLocaleString('id-ID')}</p>
+              <p className="text-xs text-brand font-medium">tersimpan aman 💚</p>
             </div>
           </div>
         </div>
@@ -106,10 +132,10 @@ export default function Home() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500 text-white">
                 <AlertCircle className="h-5 w-5" />
               </div>
-              <p className="text-sm font-semibold text-red-900">Waste Alert<br/><span className="text-xs font-normal text-red-700">0 barang hampir basi</span></p>
+              <p className="text-sm font-semibold text-red-900">Waste Alert<br/><span className="text-xs font-normal text-red-700">{criticalItems.length} barang hampir basi</span></p>
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-red-950 mb-2">Rp 0</h3>
+              <h3 className="text-2xl font-bold text-red-950 mb-2">Rp {criticalValue.toLocaleString('id-ID')}</h3>
               <p className="text-xs text-red-700 mb-4">terancam terbuang</p>
               <Link href="/inventory" className="text-sm font-semibold text-red-700 hover:text-red-800 flex items-center gap-1">
                 Cek Sekarang <ArrowRight className="h-4 w-4" />
@@ -130,14 +156,31 @@ export default function Home() {
             <Link href="/inventory" className="text-xs font-medium text-stone-500 hover:text-brand">Kelola Semua →</Link>
           </div>
           <div className="bg-white rounded-3xl border border-stone-200 p-4 min-h-[300px] flex flex-col items-center justify-center text-center">
-             <div className="w-16 h-16 bg-brand-bg rounded-full flex items-center justify-center text-stone-300 mb-3">
-               <Plus className="w-8 h-8"/>
-             </div>
-             <p className="text-stone-500 font-medium mb-1">Kulkas kamu masih kosong</p>
-             <p className="text-stone-400 text-sm mb-4">Tambahkan bahan makanan agar kami bisa mulai membantu.</p>
-             <Link href="/inventory?add=true" className="flex items-center gap-2 text-brand font-semibold text-sm border border-brand/20 px-4 py-2 rounded-full hover:bg-brand-50">
-               <Plus className="w-4 h-4"/> Tambah Stok Baru
-             </Link>
+             {loading ? (
+               <p className="text-stone-500 font-medium">Memuat data kulkas...</p>
+             ) : items.length === 0 ? (
+               <>
+                 <div className="w-16 h-16 bg-brand-bg rounded-full flex items-center justify-center text-stone-300 mb-3">
+                   <Plus className="w-8 h-8"/>
+                 </div>
+                 <p className="text-stone-500 font-medium mb-1">Kulkas kamu masih kosong</p>
+                 <p className="text-stone-400 text-sm mb-4">Tambahkan bahan makanan agar kami bisa mulai membantu.</p>
+                 <Link href="/inventory?add=true" className="flex items-center gap-2 text-brand font-semibold text-sm border border-brand/20 px-4 py-2 rounded-full hover:bg-brand-50">
+                   <Plus className="w-4 h-4"/> Tambah Stok Baru
+                 </Link>
+               </>
+             ) : (
+               <>
+                 <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mb-3">
+                   <ShoppingBag className="w-8 h-8"/>
+                 </div>
+                 <p className="text-stone-800 font-bold text-2xl mb-1">{items.length} Barang</p>
+                 <p className="text-stone-500 text-sm mb-4">Tersimpan di kulkas digitalmu.</p>
+                 <Link href="/inventory" className="flex items-center gap-2 text-brand font-semibold text-sm border border-brand/20 px-4 py-2 rounded-full hover:bg-brand-50">
+                   Lihat Isi Kulkas
+                 </Link>
+               </>
+             )}
           </div>
         </div>
 
