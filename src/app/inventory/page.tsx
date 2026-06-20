@@ -159,6 +159,16 @@ export default function Inventory() {
         status: i.status
       }));
       const { data } = await supabase.from('pantry_assets').insert(dbInsertPayload).select();
+
+      // Record expenses in Budget
+      const txInserts = itemsToSave.map(i => ({
+        user_id: userId,
+        name: `Belanja: ${i.item_name}`,
+        amount: -Math.abs(i.purchase_price || 0),
+        category: 'Groceries'
+      }));
+      await supabase.from('transactions').insert(txInserts);
+
       if (data) {
          setItems([...data, ...items]);
       } else {
@@ -210,6 +220,14 @@ export default function Inventory() {
         status: itemObj.status
       }).select();
       
+      // Record expense in Budget
+      await supabase.from('transactions').insert([{
+        user_id: userId,
+        name: `Belanja: ${itemObj.item_name}`,
+        amount: -Math.abs(itemObj.purchase_price || 0),
+        category: 'Groceries'
+      }]);
+
       if (data && data.length > 0) {
          setItems([data[0], ...items]);
       } else {

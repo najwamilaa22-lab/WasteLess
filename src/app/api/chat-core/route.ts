@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const apiKey = process.env.OPENAI_API_KEY;
-const openai = apiKey ? new OpenAI({ apiKey }) : null;
+const apiKey = process.env.GEMINI_API_KEY;
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export async function POST(req: Request) {
   try {
@@ -15,12 +15,12 @@ export async function POST(req: Request) {
     const lastUserMessage = messages[messages.length - 1]?.content || "";
 
     // Fallback if no API key is provided
-    if (!openai) {
-      console.warn("OPENAI_API_KEY is not set. Using mock kitchen chatbot assistant fallback.");
+    if (!genAI) {
+      console.warn("GEMINI_API_KEY is not set. Using mock kitchen chatbot assistant fallback.");
       // Wait 1s to simulate network request
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      let responseText = "Halo Najwa! Aku WasteLess AI. Aku siap membantumu menghemat belanjaan dan mengurangi sisa makanan di kulkas. Ada bahan yang ingin kamu olah hari ini?";
+      let responseText = "Halo Najwa! Aku WasteLess AI. Aku siap membantumu menghemat belanjaan dan mengurangi sisa makanan di kulkas. Ada bahan yang ingin kamu olah hari ini? (Ini adalah mode simulasi karena API Key belum dipasang)";
 
       const lowerMessage = lastUserMessage.toLowerCase();
       if (lowerMessage.includes("bayam")) {
@@ -40,28 +40,31 @@ export async function POST(req: Request) {
       });
     }
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      temperature: 0.7,
-      max_tokens: 800,
-      messages: [
-        {
-          role: 'system',
-          content: `You are 'WasteLess AI', a witty, empathetic, and smart kitchen companion for Najwa. Your goal is to guide users to live a healthier, minimalist, and budget-friendly lifestyle by reducing food waste. 
-          Use friendly, casual Indonesian tone (use terms like 'kamu', 'aku', 'yuk'), clear, and concise. Avoid robotic lecturing.
-          Knowledge Boundaries: Only answer queries related to food management, shelf-life extensions, recipe substitutions, kitchen hacks, budgeting, and nutrition. Politely deflect unrelated political or non-kitchen queries.`
-        },
-        ...messages
-      ]
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      systemInstruction: "You are 'WasteLess AI', a witty, empathetic, and smart kitchen companion for Najwa. Your goal is to guide users to live a healthier, minimalist, and budget-friendly lifestyle by reducing food waste. Use friendly, casual Indonesian tone (use terms like 'kamu', 'aku', 'yuk'), clear, and concise. Avoid robotic lecturing. Knowledge Boundaries: Only answer queries related to food management, shelf-life extensions, recipe substitutions, kitchen hacks, budgeting, and nutrition. Politely deflect unrelated political or non-kitchen queries."
     });
+
+    const formattedMessages = messages.slice(0, -1).map(msg => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    }));
+
+    const chat = model.startChat({
+      history: formattedMessages,
+    });
+
+    const result = await chat.sendMessage(lastUserMessage);
+    const responseText = result.response.text();
 
     return NextResponse.json({
       success: true,
-      choices: [{ message: response.choices[0].message }]
+      choices: [{ message: { role: "assistant", content: responseText } }]
     });
+
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("OpenAI API Error:", error);
+    console.error("Gemini API Error:", error);
     return NextResponse.json({ error: 'CHATBOT_FAILED', message: errorMessage }, { status: 500 });
   }
 }
