@@ -8,16 +8,64 @@ import { supabase } from '@/lib/supabase';
 export default function Home() {
   const [items, setItems] = useState<Record<string, string | number>[]>([]);
   const [loading, setLoading] = useState(true);
+  const [budgetLimit, setBudgetLimit] = useState<number>(2000000);
+  const [totalExpense, setTotalExpense] = useState(0);
+  const [currentProtein, setCurrentProtein] = useState(0);
+  const [currentCarbo, setCurrentCarbo] = useState(0);
 
   useEffect(() => {
     const init = async () => {
+      // 1. Get user session
       const { data: { session } } = await supabase.auth.getSession();
+      
+      // 2. Get local budget limit
+      const savedBudget = localStorage.getItem('wasteLess_budgetLimit');
+      if (savedBudget) {
+        setBudgetLimit(Number(savedBudget));
+      }
+
       if (session) {
-        const { data } = await supabase
+        const userId = session.user.id;
+
+        // Fetch Inventory
+        const { data: pantryData } = await supabase
           .from('pantry_assets')
           .select('*')
-          .eq('user_id', session.user.id);
-        if (data) setItems(data);
+          .eq('user_id', userId);
+        if (pantryData) setItems(pantryData);
+
+        // Fetch Transactions for current month (expenses only)
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const { data: txData } = await supabase
+          .from('transactions')
+          .select('amount')
+          .eq('user_id', userId)
+          .gte('created_at', startOfMonth.toISOString());
+        
+        if (txData) {
+          const expense = txData
+            .filter(t => t.amount < 0)
+            .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+          setTotalExpense(expense);
+        }
+
+        // Fetch Nutrition for today
+        const todayStr = new Intl.DateTimeFormat('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        const { data: nutData } = await supabase
+          .from('nutrition_logs')
+          .select('protein, carbs')
+          .eq('user_id', userId)
+          .eq('meal_time', todayStr);
+        
+        if (nutData) {
+          const totalPro = nutData.reduce((sum, log) => sum + (log.protein || 0), 0);
+          const totalCarb = nutData.reduce((sum, log) => sum + (log.carbs || 0), 0);
+          setCurrentProtein(totalPro);
+          setCurrentCarbo(totalCarb);
+        }
       }
       setLoading(false);
     };
@@ -99,9 +147,9 @@ export default function Home() {
               <p className="text-sm font-semibold text-stone-700">Sisa Budget Bulan Ini</p>
             </div>
             <div>
-              <h3 className="text-3xl font-bold text-stone-900 mb-2">Rp 0</h3>
+              <h3 className="text-3xl font-bold text-stone-900 mb-2">Rp {(budgetLimit - totalExpense).toLocaleString('id-ID')}</h3>
               <p className="text-xs text-brand font-medium flex items-center gap-1">
-                ↑ Belum ada data
+                {totalExpense === 0 ? "↑ Belum ada data pengeluaran" : `Sisa dari Rp ${budgetLimit.toLocaleString('id-ID')}`}
               </p>
             </div>
           </div>
@@ -118,11 +166,21 @@ export default function Home() {
               <Link href="/nutrition" className="text-xs bg-white px-3 py-1 rounded-full border border-stone-200">Detail</Link>
             </div>
             <div className="space-y-3">
-               <div className="flex justify-between items-center text-sm"><span className="text-stone-600">Protein</span><span className="font-medium">0%</span></div>
-               <div className="w-full bg-stone-200 rounded-full h-1.5"><div className="bg-brand h-1.5 rounded-full" style={{width: '0%'}}></div></div>
+               <div className="flex justify-between items-center text-sm">
+                 <span className="text-stone-600">Protein</span>
+                 <span className="font-medium">{Math.min(100, Math.round((currentProtein / 100) * 100))}%</span>
+               </div>
+               <div className="w-full bg-stone-200 rounded-full h-1.5">
+                 <div className="bg-brand h-1.5 rounded-full" style={{width: `${Math.min(100, (currentProtein / 100) * 100)}%`}}></div>
+               </div>
                
-               <div className="flex justify-between items-center text-sm"><span className="text-stone-600">Karbo</span><span className="font-medium">0%</span></div>
-               <div className="w-full bg-stone-200 rounded-full h-1.5"><div className="bg-[#E6B981] h-1.5 rounded-full" style={{width: '0%'}}></div></div>
+               <div className="flex justify-between items-center text-sm">
+                 <span className="text-stone-600">Karbo</span>
+                 <span className="font-medium">{Math.min(100, Math.round((currentCarbo / 250) * 100))}%</span>
+               </div>
+               <div className="w-full bg-stone-200 rounded-full h-1.5">
+                 <div className="bg-[#E6B981] h-1.5 rounded-full" style={{width: `${Math.min(100, (currentCarbo / 250) * 100)}%`}}></div>
+               </div>
             </div>
           </div>
 
