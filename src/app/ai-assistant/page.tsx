@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Send, Sparkles, Utensils, BookOpen, BarChart2, Calendar, ChevronRight, Leaf, Info, Droplets } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -171,7 +172,13 @@ export default function AIAssistant() {
                   : 'bg-white border border-stone-100 shadow-sm text-stone-700 font-medium rounded-tl-sm'
               }`}>
                 {msg.role === 'assistant' && <p className="text-[10px] font-bold text-brand mb-1">WasteLess AI</p>}
-                {msg.content}
+                {msg.role === 'assistant' ? (
+                  <div className="prose prose-sm prose-stone max-w-none">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
+                ) : (
+                  msg.content
+                )}
               </div>
             </div>
           ))}

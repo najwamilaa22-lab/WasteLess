@@ -314,7 +314,7 @@ export default function BudgetPage() {
            
            <div className="bg-white rounded-3xl border border-stone-200 p-6 shadow-sm flex flex-col max-h-[500px]">
              <div className="flex items-center justify-between mb-6 shrink-0">
-               <h3 className="font-bold text-stone-900">Riwayat Terakhir</h3>
+               <h3 className="font-bold text-stone-900">Rekap Transaksi Terakhir</h3>
              </div>
              
              <div className="space-y-4 overflow-y-auto flex-1 pr-2 scrollbar-hide">
