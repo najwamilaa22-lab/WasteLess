@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Camera, ArrowRight, ShieldCheck, Wallet, Flame, AlertCircle, Plus, ChevronRight, BookOpen, Sparkles } from 'lucide-react';
+import { Camera, ArrowRight, ShieldCheck, Wallet, Flame, AlertCircle, Plus, ChevronRight, BookOpen, Sparkles, ShoppingBag } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function Home() {
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

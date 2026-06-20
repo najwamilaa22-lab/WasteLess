@@ -47,7 +47,7 @@ export default function AIAssistant() {
       } else {
         setMessages([...newMessages, { role: 'assistant', content: 'Maaf, aku sedang tidak bisa merespon saat ini. Coba lagi nanti ya!' }]);
       }
-    } catch (e) {
+    } catch {
       setMessages([...newMessages, { role: 'assistant', content: 'Maaf, koneksiku sedang terganggu. Coba lagi nanti ya!' }]);
     } finally {
       setChatLoading(false);
