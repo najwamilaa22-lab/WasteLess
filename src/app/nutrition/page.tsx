@@ -1,6 +1,6 @@
 'use client';
 
-import { Flame, Droplets, Target, Activity, ArrowRight, Apple, Beef, Wheat, Plus, X, Loader2 } from 'lucide-react';
+import { Flame, Droplets, Target, Activity, ArrowRight, Apple, Beef, Wheat, Plus, X, Loader2, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -24,6 +24,7 @@ export default function NutritionPage() {
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEstimating, setIsEstimating] = useState(false);
   const [mealName, setMealName] = useState('');
   const [mealCalories, setMealCalories] = useState('');
   const [mealProtein, setMealProtein] = useState('');
@@ -71,6 +72,45 @@ export default function NutritionPage() {
       }
     }
     setLoading(false);
+  };
+
+  const handleEstimateAI = async () => {
+    if (!mealName) {
+      alert("Silakan isi nama makanan terlebih dahulu!");
+      return;
+    }
+    
+    setIsEstimating(true);
+    try {
+      const res = await fetch('/api/estimate-nutrition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mealName })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok && !data.error) {
+        setMealCalories(data.calories.toString());
+        setMealProtein(data.protein.toString());
+        setMealCarbs(data.carbs.toString());
+        setMealFat(data.fat.toString());
+      } else {
+        alert("Gagal mengestimasi: " + (data.error || "Terjadi kesalahan"));
+        // if fallback data was provided despite error, we can still use it, but alert shown above
+        if (data.calories) {
+           setMealCalories(data.calories.toString());
+           setMealProtein(data.protein.toString());
+           setMealCarbs(data.carbs.toString());
+           setMealFat(data.fat.toString());
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Terjadi kesalahan jaringan saat menghubungi AI.");
+    } finally {
+      setIsEstimating(false);
+    }
   };
 
   const handleAddMeal = async (e: React.FormEvent) => {
@@ -142,7 +182,13 @@ export default function NutritionPage() {
              <form onSubmit={handleAddMeal} className="p-6 space-y-4">
                <div>
                  <label className="text-sm font-semibold text-stone-700 block mb-1.5">Nama Makanan</label>
-                 <input required type="text" value={mealName} onChange={(e) => setMealName(e.target.value)} placeholder="Misal: Ayam Bakar & Nasi" className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand" />
+                 <div className="flex gap-2">
+                   <input required type="text" value={mealName} onChange={(e) => setMealName(e.target.value)} placeholder="Misal: Ayam Bakar & Nasi" className="flex-1 px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand" />
+                   <button type="button" onClick={handleEstimateAI} disabled={isEstimating || !mealName} className="px-4 py-3 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-100 transition-colors disabled:opacity-50">
+                     {isEstimating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                     <span className="hidden sm:inline text-sm">Estimasi AI</span>
+                   </button>
+                 </div>
                </div>
 
                <div className="grid grid-cols-2 gap-4">
