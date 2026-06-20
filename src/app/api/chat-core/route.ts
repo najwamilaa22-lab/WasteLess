@@ -74,7 +74,28 @@ export async function POST(req: Request) {
     });
 
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    let errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // Debugging step: if it's a 404 model not found, let's fetch the list of available models for this API key
+    try {
+      if (apiKey && errorMessage.includes('404')) {
+        const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        const modelsData = await modelsRes.json();
+        if (modelsData && modelsData.models) {
+          type ModelType = { supportedGenerationMethods?: string[], name: string };
+          const availableModels = modelsData.models
+            .filter((m: ModelType) => m.supportedGenerationMethods?.includes('generateContent'))
+            .map((m: ModelType) => m.name)
+            .join(', ');
+          errorMessage += `\\n\\n[DEBUG] Model yang tersedia untuk API Key Anda: ${availableModels || 'TIDAK ADA'}`;
+        } else {
+          errorMessage += `\\n\\n[DEBUG] Gagal melist model: ${JSON.stringify(modelsData)}`;
+        }
+      }
+    } catch (_) {
+      // Ignore inner error
+    }
+
     console.error("Gemini API Error:", error);
     return NextResponse.json({ error: 'CHATBOT_FAILED', message: errorMessage }, { status: 500 });
   }
