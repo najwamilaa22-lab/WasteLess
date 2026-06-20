@@ -41,8 +41,7 @@ export async function POST(req: Request) {
     }
 
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash-latest",
-      systemInstruction: "You are 'WasteLess AI', a witty, empathetic, and smart kitchen companion for Najwa. Your goal is to guide users to live a healthier, minimalist, and budget-friendly lifestyle by reducing food waste. Use friendly, casual Indonesian tone (use terms like 'kamu', 'aku', 'yuk'), clear, and concise. Avoid robotic lecturing. Knowledge Boundaries: Only answer queries related to food management, shelf-life extensions, recipe substitutions, kitchen hacks, budgeting, and nutrition. Politely deflect unrelated political or non-kitchen queries."
+      model: "gemini-pro"
     });
 
     const formattedMessages = messages.slice(0, -1).map(msg => ({
@@ -50,13 +49,20 @@ export async function POST(req: Request) {
       parts: [{ text: msg.content }]
     }));
 
-    // Gemini requires history to start with a 'user' message
     while (formattedMessages.length > 0 && formattedMessages[0].role === 'model') {
       formattedMessages.shift();
     }
 
+    const SYSTEM_PROMPT = "You are 'WasteLess AI', a witty, empathetic, and smart kitchen companion for Najwa. Your goal is to guide users to live a healthier, minimalist, and budget-friendly lifestyle by reducing food waste. Use friendly, casual Indonesian tone (use terms like 'kamu', 'aku', 'yuk'), clear, and concise. Avoid robotic lecturing. Knowledge Boundaries: Only answer queries related to food management, shelf-life extensions, recipe substitutions, kitchen hacks, budgeting, and nutrition. Politely deflect unrelated political or non-kitchen queries.";
+
+    const historyWithSystem = [
+      { role: 'user', parts: [{ text: SYSTEM_PROMPT + "\\n\\nAyo mulai obrolan kita!" }] },
+      { role: 'model', parts: [{ text: "Halo Najwa! Aku WasteLess AI, siap membantumu menghemat belanjaan dan mengurangi sisa makanan di kulkas. Ada yang bisa kubantu?" }] },
+      ...formattedMessages
+    ];
+
     const chat = model.startChat({
-      history: formattedMessages,
+      history: historyWithSystem,
     });
 
     const result = await chat.sendMessage(lastUserMessage);
