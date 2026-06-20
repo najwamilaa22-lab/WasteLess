@@ -45,7 +45,8 @@ export default function AIAssistant() {
       if (data.success && data.choices && data.choices.length > 0) {
         setMessages([...newMessages, data.choices[0].message]);
       } else {
-        setMessages([...newMessages, { role: 'assistant', content: 'Maaf, aku sedang tidak bisa merespon saat ini. Coba lagi nanti ya!' }]);
+        const errorDetail = data.message ? `(Error: ${data.message})` : '';
+        setMessages([...newMessages, { role: 'assistant', content: `Maaf, aku sedang tidak bisa merespon saat ini. Coba lagi nanti ya! ${errorDetail}` }]);
       }
     } catch {
       setMessages([...newMessages, { role: 'assistant', content: 'Maaf, koneksiku sedang terganggu. Coba lagi nanti ya!' }]);
