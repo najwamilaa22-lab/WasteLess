@@ -35,11 +35,23 @@ export default function AIAssistant() {
     setMessages(newMessages);
     setChatLoading(true);
 
-    // Mock response for UI implementation without real backend logic
-    setTimeout(() => {
-      setMessages([...newMessages, { role: 'assistant', content: 'Fitur AI sedang dalam pengembangan. Silakan tambahkan stok ke My Kitchen terlebih dahulu agar aku bisa memberikan rekomendasi yang lebih baik!' }]);
+    try {
+      const res = await fetch('/api/chat-core', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: newMessages })
+      });
+      const data = await res.json();
+      if (data.success && data.choices && data.choices.length > 0) {
+        setMessages([...newMessages, data.choices[0].message]);
+      } else {
+        setMessages([...newMessages, { role: 'assistant', content: 'Maaf, aku sedang tidak bisa merespon saat ini. Coba lagi nanti ya!' }]);
+      }
+    } catch (e) {
+      setMessages([...newMessages, { role: 'assistant', content: 'Maaf, koneksiku sedang terganggu. Coba lagi nanti ya!' }]);
+    } finally {
       setChatLoading(false);
-    }, 1500);
+    }
   };
 
   return (
