@@ -1,7 +1,31 @@
+'use client';
+
 import { Flame, Droplets, Target, Activity, ArrowRight, Apple, Beef, Wheat } from 'lucide-react';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 export default function NutritionPage() {
+  const [vegetableInFridge, setVegetableInFridge] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchInventory = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data } = await supabase
+          .from('pantry_assets')
+          .select('item_name, category')
+          .eq('user_id', session.user.id)
+          .eq('category', 'Sayur');
+        
+        if (data && data.length > 0) {
+          setVegetableInFridge(data[0].item_name);
+        }
+      }
+    };
+    fetchInventory();
+  }, []);
+
   // Dummy data for visual representation
   const macroGoals = {
     calories: { current: 1850, target: 2000 },
@@ -117,7 +141,7 @@ export default function NutritionPage() {
                <h3 className="font-bold text-stone-900">Insight Nutrisi AI</h3>
              </div>
              <p className="text-sm text-stone-600 leading-relaxed mb-4">
-               Tingkat konsumsi proteinmu <span className="font-bold text-emerald-600">sangat baik</span> hari ini! Namun, kamu masih kekurangan serat. Coba tambahkan sisa <span className="font-bold">Bayam</span> di kulkasmu untuk makan malam.
+               Tingkat konsumsi proteinmu <span className="font-bold text-emerald-600">sangat baik</span> hari ini! Namun, kamu masih kekurangan serat. Coba tambahkan {vegetableInFridge ? <><span className="font-bold">{vegetableInFridge}</span> dari kulkasmu</> : "sayuran segar"} untuk makan malam.
              </p>
              <Link href="/ai-assistant" className="inline-flex items-center gap-1.5 text-xs font-bold bg-white border border-amber-200 px-4 py-2 rounded-full text-amber-700 hover:bg-amber-50">
                Tanya Resep Serat Tinggi <ArrowRight className="w-3 h-3"/>
