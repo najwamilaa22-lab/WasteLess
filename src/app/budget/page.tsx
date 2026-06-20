@@ -253,7 +253,8 @@ export default function BudgetPage() {
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#78716c' }} tickFormatter={(value) => `Rp${value / 1000}k`} />
                     <Tooltip 
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
-                      formatter={(value: number) => [`Rp ${value.toLocaleString('id-ID')}`, '']}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={(value: any) => [`Rp ${Number(value).toLocaleString('id-ID')}`, '']}
                     />
                     <Area type="monotone" dataKey="Pengeluaran" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorExpense)" />
                     <Area type="monotone" dataKey="Penghematan" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorSavings)" />
