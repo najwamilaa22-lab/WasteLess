@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Camera, Plus, Trash2, Check, RefreshCw, AlertCircle, ShoppingBag, Calendar } from 'lucide-react';
+import { Camera, Plus, Trash2, Check, RefreshCw, AlertCircle, ShoppingBag, Calendar, Pencil } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface PantryItem {
@@ -23,6 +23,10 @@ export default function Inventory() {
   const [scannedItems, setScannedItems] = useState<Omit<PantryItem, 'id' | 'status' | 'purchase_date' | 'estimated_expiry_date'>[]>([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+
+  // Form state for edit expiry
+  const [editExpiryItem, setEditExpiryItem] = useState<PantryItem | null>(null);
+  const [newExpiryDate, setNewExpiryDate] = useState<string>('');
 
   // Form states for manual add
   const [newItem, setNewItem] = useState({
@@ -226,6 +230,40 @@ export default function Inventory() {
     });
   };
 
+  // Handle edit expiry date
+  const handleEditExpiry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editExpiryItem) return;
+
+    // Recalculate status based on new date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiry = new Date(newExpiryDate);
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    let itemStatus = 'Segar';
+    if (diffDays <= 1) itemStatus = 'Kritis';
+    else if (diffDays <= 2) itemStatus = 'Warning';
+
+    const updatedItem = { ...editExpiryItem, estimated_expiry_date: newExpiryDate, status: itemStatus };
+
+    try {
+      if (!updatedItem.id.startsWith('manual') && !updatedItem.id.startsWith('scanned')) {
+        await supabase.from('pantry_assets').update({
+          estimated_expiry_date: newExpiryDate,
+          status: itemStatus
+        }).eq('id', updatedItem.id);
+      }
+      setItems(items.map(i => i.id === updatedItem.id ? updatedItem : i));
+    } catch (err) {
+      console.warn(err);
+    }
+
+    setEditExpiryItem(null);
+    setNewExpiryDate('');
+  };
+
   // Consume / Use item (reduces weight or marks as consumed)
   const handleConsumeItem = async (id: string, amount: number) => {
     const targetItem = items.find(item => item.id === id);
@@ -369,7 +407,19 @@ export default function Inventory() {
                     </div>
                     <div className="flex justify-between items-center text-[11px] pt-2 border-t border-stone-200/50">
                       <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> Kedaluwarsa:</span>
-                      <span className="text-stone-800 font-bold">{item.estimated_expiry_date}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-stone-800 font-bold">{item.estimated_expiry_date}</span>
+                        <button 
+                          onClick={() => {
+                            setEditExpiryItem(item);
+                            setNewExpiryDate(item.estimated_expiry_date);
+                          }}
+                          className="text-stone-400 hover:text-emerald-600 transition-colors"
+                          title="Sesuaikan Tanggal Kedaluwarsa"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -545,6 +595,52 @@ export default function Inventory() {
                 className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 text-xs font-semibold shadow-md"
               >
                 Simpan
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Modal 3: Edit Kedaluwarsa */}
+      {editExpiryItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/60 backdrop-blur-sm p-4">
+          <form onSubmit={handleEditExpiry} className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl animate-fade-in">
+            <h3 className="text-xl font-bold text-stone-950 flex items-center gap-2 mb-4">
+              <Calendar className="h-5 w-5 text-emerald-600" />
+              Sesuaikan Kedaluwarsa
+            </h3>
+            
+            <p className="text-xs text-stone-500 mb-4 font-medium">
+              Ubah tanggal kedaluwarsa untuk <span className="font-bold text-stone-800">{editExpiryItem.item_name}</span>.
+            </p>
+
+            <div>
+              <label className="block text-xs font-bold text-stone-600 mb-1.5">Tanggal Kedaluwarsa Baru</label>
+              <input
+                type="date"
+                required
+                value={newExpiryDate}
+                onChange={e => setNewExpiryDate(e.target.value)}
+                className="block w-full rounded-xl border border-stone-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditExpiryItem(null);
+                  setNewExpiryDate('');
+                }}
+                className="rounded-full px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-50"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 text-xs font-semibold shadow-md"
+              >
+                Simpan Perubahan
               </button>
             </div>
           </form>

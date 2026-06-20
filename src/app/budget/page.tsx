@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Wallet, TrendingUp, TrendingDown, PiggyBank, Receipt, PieChart, Plus, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 // Define the transaction type
 type Transaction = {
@@ -38,6 +39,30 @@ export default function BudgetPage() {
 
   const budgetLimit = 2000000; // Hardcoded dummy budget limit for visual purposes
   const remainingBudget = budgetLimit - totalExpense;
+
+  // Prepare chart data
+  // Group by date (DD MMM) and aggregate expense and savings
+  const chartDataMap: Record<string, { date: string, Pengeluaran: number, Penghematan: number }> = {};
+  
+  // Sort transactions by date ascending for the chart
+  const sortedForChart = [...transactions].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  
+  sortedForChart.forEach(t => {
+    const d = new Date(t.created_at);
+    const dateStr = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(d);
+    
+    if (!chartDataMap[dateStr]) {
+      chartDataMap[dateStr] = { date: dateStr, Pengeluaran: 0, Penghematan: 0 };
+    }
+    
+    if (t.amount < 0) {
+      chartDataMap[dateStr].Pengeluaran += Math.abs(t.amount);
+    } else {
+      chartDataMap[dateStr].Penghematan += t.amount;
+    }
+  });
+
+  const chartData = Object.values(chartDataMap);
 
   useEffect(() => {
     fetchData();
@@ -198,18 +223,43 @@ export default function BudgetPage() {
             </div>
           </div>
 
-          {/* Graph Placeholder */}
+          {/* Interactive Graph */}
           <div className="bg-white rounded-3xl border border-stone-200 p-8 shadow-sm">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="font-bold text-stone-900 text-lg flex items-center gap-2">Trend Visualisasi (Statis)</h3>
+              <h3 className="font-bold text-stone-900 text-lg flex items-center gap-2">Trend Analitik</h3>
             </div>
             
-            <div className="w-full h-64 border-b border-l border-stone-200 relative">
-               <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0wIDM5LjVoNDBNMzkuNSAwdi00MCIgc3Ryb2tlPSIjZjVmNWY0IiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4=')]"></div>
-               <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 100">
-                  <path d="M0,80 Q10,70 20,85 T40,60 T60,75 T80,40 T100,50" fill="none" stroke="#ef4444" strokeWidth="2" />
-                  <path d="M0,90 Q10,95 20,85 T40,70 T60,80 T80,60 T100,40" fill="none" stroke="#386641" strokeWidth="2" strokeDasharray="4" />
-               </svg>
+            <div className="w-full h-64">
+              {chartData.length === 0 ? (
+                <div className="w-full h-full flex flex-col items-center justify-center text-stone-400">
+                  <TrendingUp className="w-10 h-10 mb-2 opacity-20"/>
+                  <p className="text-sm font-bold">Belum ada data untuk divisualisasikan</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorSavings" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f4" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#78716c' }} dy={10} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#78716c' }} tickFormatter={(value) => `Rp${value / 1000}k`} />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
+                      formatter={(value: number) => [`Rp ${value.toLocaleString('id-ID')}`, '']}
+                    />
+                    <Area type="monotone" dataKey="Pengeluaran" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorExpense)" />
+                    <Area type="monotone" dataKey="Penghematan" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorSavings)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
 
