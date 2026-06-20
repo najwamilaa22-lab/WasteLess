@@ -6,7 +6,7 @@ const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export async function POST(req: Request) {
   try {
-    const { messages } = await req.json();
+    const { messages, inventory } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Format pesan tidak valid' }, { status: 400 });
@@ -40,9 +40,16 @@ export async function POST(req: Request) {
       });
     }
 
+    let inventoryContext = "";
+    if (inventory && Array.isArray(inventory) && inventory.length > 0) {
+      type InventoryItem = { name: string, quantity: number, unit?: string, expiryDate: string };
+      const itemsList = inventory.map((item: InventoryItem) => `- ${item.name} (${item.quantity} ${item.unit || ''}) - Kedaluwarsa: ${item.expiryDate}`).join('\\n');
+      inventoryContext = `\\n\\n[DATA STOK KULKAS PENGGUNA SAAT INI (MY KITCHEN)]:\\n${itemsList}\\n\\nPerhatikan data stok di atas saat pengguna bertanya tentang bahan makanan, sisa stok, atau meminta resep. Jika stok kosong, ajak pengguna untuk mulai mencatat barang belanjaan mereka.`;
+    }
+
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
-      systemInstruction: "You are 'WasteLess AI', a witty, empathetic, and smart kitchen companion for Najwa. Your goal is to guide users to live a healthier, minimalist, and budget-friendly lifestyle by reducing food waste. Use friendly, casual Indonesian tone (use terms like 'kamu', 'aku', 'yuk'), clear, and concise. Avoid robotic lecturing. Knowledge Boundaries: Only answer queries related to food management, shelf-life extensions, recipe substitutions, kitchen hacks, budgeting, and nutrition. Politely deflect unrelated political or non-kitchen queries."
+      systemInstruction: "You are 'WasteLess AI', a witty, empathetic, and smart kitchen companion for Najwa. Your goal is to guide users to live a healthier, minimalist, and budget-friendly lifestyle by reducing food waste. Use friendly, casual Indonesian tone (use terms like 'kamu', 'aku', 'yuk'), clear, and concise. Avoid robotic lecturing. Knowledge Boundaries: Only answer queries related to food management, shelf-life extensions, recipe substitutions, kitchen hacks, budgeting, and nutrition. Politely deflect unrelated political or non-kitchen queries." + inventoryContext
     });
 
     const formattedMessages = messages.slice(0, -1).map(msg => ({

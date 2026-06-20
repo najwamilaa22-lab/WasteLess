@@ -36,10 +36,13 @@ export default function AIAssistant() {
     setChatLoading(true);
 
     try {
+      const savedInventory = localStorage.getItem('inventoryItems');
+      const inventoryData = savedInventory ? JSON.parse(savedInventory) : [];
+
       const res = await fetch('/api/chat-core', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages })
+        body: JSON.stringify({ messages: newMessages, inventory: inventoryData })
       });
       const data = await res.json();
       if (data.success && data.choices && data.choices.length > 0) {
