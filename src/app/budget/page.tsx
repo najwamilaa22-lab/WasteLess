@@ -37,7 +37,26 @@ export default function BudgetPage() {
     .filter(t => t.amount > 0)
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const budgetLimit = 2000000; // Hardcoded dummy budget limit for visual purposes
+  const [budgetLimit, setBudgetLimit] = useState<number>(2000000);
+  const [isEditingBudget, setIsEditingBudget] = useState(false);
+  const [tempBudget, setTempBudget] = useState('2000000');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('wasteLess_budgetLimit');
+    if (saved) {
+      setBudgetLimit(Number(saved));
+    }
+  }, []);
+
+  const handleSaveBudget = () => {
+    const val = Number(tempBudget);
+    if (!isNaN(val) && val >= 0) {
+      setBudgetLimit(val);
+      localStorage.setItem('wasteLess_budgetLimit', val.toString());
+      setIsEditingBudget(false);
+    }
+  };
+
   const remainingBudget = budgetLimit - totalExpense;
 
   // Prepare chart data
@@ -136,6 +155,27 @@ export default function BudgetPage() {
   return (
     <div className="min-h-screen bg-brand-bg pb-20 relative">
       {/* Modal */}
+      {/* Modal Edit Budget */}
+      {isEditingBudget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden border border-stone-200 p-6">
+            <h3 className="text-xl font-bold font-heading text-stone-900 mb-4">Edit Anggaran Awal</h3>
+            <label className="text-sm font-semibold text-stone-700 block mb-1.5">Nominal Anggaran (Rp)</label>
+            <input 
+              type="number" 
+              value={tempBudget} 
+              onChange={(e) => setTempBudget(e.target.value)} 
+              className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-2 focus:ring-brand font-mono text-lg mb-4" 
+            />
+            <div className="flex gap-2">
+              <button onClick={() => setIsEditingBudget(false)} className="flex-1 py-3 bg-stone-100 text-stone-600 rounded-xl font-bold hover:bg-stone-200 transition-colors">Batal</button>
+              <button onClick={handleSaveBudget} className="flex-1 py-3 bg-brand-dark text-white rounded-xl font-bold hover:bg-brand transition-colors">Simpan</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Add Transaction */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-stone-200">
@@ -200,12 +240,15 @@ export default function BudgetPage() {
               <div className="absolute top-0 right-0 p-4 opacity-5">
                  <Wallet className="w-24 h-24"/>
               </div>
-              <div className="flex items-center gap-2 text-stone-500 font-semibold text-sm">
-                <Wallet className="w-4 h-4 text-brand"/> Sisa Anggaran (Simulasi Rp 2Jt)
+              <div className="flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-2 text-stone-500 font-semibold text-sm">
+                  <Wallet className="w-4 h-4 text-brand"/> Sisa Anggaran
+                </div>
+                <button onClick={() => { setTempBudget(budgetLimit.toString()); setIsEditingBudget(true); }} className="text-xs font-bold text-brand hover:underline px-2 py-1 bg-brand-light/30 rounded-lg">Edit Anggaran</button>
               </div>
-              <div>
+              <div className="relative z-10">
                  <h2 className="text-3xl font-extrabold text-stone-900 mb-1">Rp {remainingBudget.toLocaleString('id-ID')}</h2>
-                 <p className="text-xs font-bold text-stone-400">Total Pengeluaran: Rp {totalExpense.toLocaleString('id-ID')}</p>
+                 <p className="text-xs font-bold text-stone-400">Anggaran Awal: Rp {budgetLimit.toLocaleString('id-ID')} • Terpakai: Rp {totalExpense.toLocaleString('id-ID')}</p>
               </div>
             </div>
 
